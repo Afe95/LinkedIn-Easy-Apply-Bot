@@ -17,6 +17,7 @@ class LinkedinEasyApply:
         self.disable_lock = parameters['disableAntiLock']
         self.company_blacklist = parameters.get('companyBlacklist', []) or []
         self.title_blacklist = parameters.get('titleBlacklist', []) or []
+        self.desc_whitelist = parameters.get('descriptionWhitelist', []) or []
         self.positions = parameters.get('positions', [])
         self.locations = parameters.get('locations', [])
         self.base_search_url = self.get_base_search_url(parameters)
@@ -128,9 +129,9 @@ class LinkedinEasyApply:
             raise Exception("No more jobs on this page")
 
         try:
-            # job_results = self.browser.find_element(By.CLASS_NAME, "jobs-search-results")
-            # self.scroll_slow(job_results)
-            # self.scroll_slow(job_results, step=300, reverse=True)
+            job_results = self.browser.find_element(By.CLASS_NAME, "jobs-search-results-list")
+            self.scroll_slow(job_results)
+            self.scroll_slow(job_results, step=300, reverse=True)
 
             # job_list = self.browser.find_elements(By.CLASS_NAME, 'jobs-search-results__list')[0].find_elements(By.CLASS_NAME, 'jobs-search-results__list-item')
             job_list = self.browser.find_elements(By.CLASS_NAME, 'jobs-search-results__list-item')
@@ -142,6 +143,11 @@ class LinkedinEasyApply:
 
         for job_tile in job_list:
             job_title, company, job_location, apply_method, link = "", "", "", "", ""
+
+            job_el = job_tile.find_element(By.CLASS_NAME, 'job-card-list__title')
+            job_el.click()
+
+            time.sleep(random.uniform(3, 5))
 
             try:
                 job_title = job_tile.find_element(By.CLASS_NAME, 'job-card-list__title').text
@@ -160,23 +166,31 @@ class LinkedinEasyApply:
                 apply_method = job_tile.find_element(By.CLASS_NAME, 'job-card-container__apply-method').text
             except:
                 pass
+            try:
+                job_desc = self.browser.find_element(By.CLASS_NAME, 'jobs-description-content__text').text
+            except:
+                pass
 
             contains_blacklisted_keywords = False
-            job_title_parsed = job_title.lower().split(' ')
+            contains_whitelisted_keywords = False
+            contains_whitelisted_company = company.lower() not in [word.lower() for word in self.company_blacklist]
+            contains_not_seen_job = link not in self.seen_jobs
+            job_title_parsed = job_title.lower()
 
             for word in self.title_blacklist:
                 if word.lower() in job_title_parsed:
                     contains_blacklisted_keywords = True
                     break
 
-            if company.lower() not in [word.lower() for word in self.company_blacklist] and \
-               contains_blacklisted_keywords is False and link not in self.seen_jobs:
+            job_desc_parsed = job_desc.lower()
+            for word in self.desc_whitelist:
+                if word.lower() in job_desc_parsed:
+                    contains_whitelisted_keywords = True
+                    break
+
+            if contains_whitelisted_company is True and contains_blacklisted_keywords is False \
+               and contains_whitelisted_keywords is True and contains_not_seen_job is True:
                 try:
-                    job_el = job_tile.find_element(By.CLASS_NAME, 'job-card-list__title')
-                    job_el.click()
-
-                    time.sleep(random.uniform(3, 5))
-
 
                     try:
                         done_applying = self.apply_to_job()
@@ -201,11 +215,23 @@ class LinkedinEasyApply:
                         print("Could not write the job to the file! No special characters in the job title/company is allowed!")
                         traceback.print_exc()
                 except:
-                    traceback.print_exc()
+                    # traceback.print_exc()
                     print("Could not apply to the job!")
                     pass
             else:
-                print("Job contains blacklisted keyword or company name!")
+                print(job_title)
+                if contains_blacklisted_keywords:
+                    print("Job title contains blacklisted keywords")
+                elif not contains_whitelisted_keywords:
+                    print("Job has no relevant words in job description")
+                elif not contains_whitelisted_company:
+                    print("Job contains blacklisted company")
+                elif not contains_not_seen_job:
+                    print("Job has been seen already")
+                else:
+                    print("Something is wrong and I didn't apply")
+            print("")
+            print("")
             self.seen_jobs += link
 
     def apply_to_job(self):
