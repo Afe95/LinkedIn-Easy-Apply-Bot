@@ -29,8 +29,8 @@ def validate_yaml():
             raise exc
 
     mandatory_params = ['email', 'password', 'disableAntiLock', 'remote', 'experienceLevel', 'jobTypes', 'date',
-                        'positions', 'locations', 'distance', 'outputFileDirectory', 'checkboxes', 'universityGpa',
-                        'languages', 'industry', 'technology', 'personalInfo', 'eeo', 'uploads']
+                        'positions', 'locations', 'distance', 'checkboxes',
+                        'languages', 'industry', 'technology', 'personalInfo']
 
     for mandatory_param in mandatory_params:
         if mandatory_param not in parameters:
@@ -73,8 +73,6 @@ def validate_yaml():
     assert len(parameters['positions']) > 0
     assert len(parameters['locations']) > 0
 
-    assert len(parameters['uploads']) >= 1 and 'resume' in parameters['uploads']
-
     assert len(parameters['checkboxes']) > 0
 
     checkboxes = parameters.get('checkboxes', [])
@@ -86,7 +84,7 @@ def validate_yaml():
     assert isinstance(checkboxes['backgroundCheck'], bool)
     assert 'degreeCompleted' in checkboxes
 
-    assert isinstance(parameters['universityGpa'], (int, float))
+    # assert isinstance(parameters['universityGpa'], (int, float))
 
     languages = parameters.get('languages', [])
     language_types = {'none', 'conversational', 'professional', 'native or bilingual'}
@@ -110,10 +108,10 @@ def validate_yaml():
     for info in personal_info:
         assert personal_info[info] != ''
 
-    assert len(parameters['eeo'])
-    eeo = parameters.get('eeo', [])
-    for survey_question in eeo:
-        assert eeo[survey_question] != ''
+    # assert len(parameters['eeo'])
+    # eeo = parameters.get('eeo', [])
+    # for survey_question in eeo:
+    #     assert eeo[survey_question] != ''
 
     return parameters
 
